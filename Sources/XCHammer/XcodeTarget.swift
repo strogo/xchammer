@@ -1261,6 +1261,7 @@ public class XcodeTarget: Hashable, Equatable {
         // Minimal settings for this build
         var settings = XCBuildSettings()
 
+        let targetSuffix = XcodeTarget.bazelBuildableTargetSuffix(genOptions: genOptions)
         let xcodeTarget = self
         /// We need to include the sources into the target
         let sources: [ProjectSpec.TargetSource]
@@ -1271,7 +1272,7 @@ public class XcodeTarget: Hashable, Equatable {
         let linkedDeps = xcodeTarget.linkedTargetLabels
             .compactMap { targetMap.xcodeTarget(buildLabel: $0, depender: xcodeTarget) }
             .filter { includeTarget($0, pathPredicate: pathsPredicate) }
-            .map { ProjectSpec.Dependency(type: .target, reference: $0.xcTargetName + "-Bazel",
+            .map { ProjectSpec.Dependency(type: .target, reference: $0.xcTargetName + targetSuffix,
                     embed: $0.isExtension) }
 
         if isTopLevelTestTarget {
@@ -1290,7 +1291,8 @@ public class XcodeTarget: Hashable, Equatable {
                  // - Xcode bazel-builds the app as a scheme dep
                  // - Xcode bazel-builds the test which install the test bundle into the
                  //   app
-                 settings.testHost = First(xcBuildTestHost.replacingOccurrences(of: ".app", with: "-Bazel.app") + "-Bazel")
+                 settings.testHost = First(xcBuildTestHost
+                     .replacingOccurrences(of: ".app", with: targetSuffix + ".app") + targetSuffix)
             }
 
 
@@ -1334,7 +1336,7 @@ public class XcodeTarget: Hashable, Equatable {
         let bazelScript = ProjectSpec.BuildScript(path: nil, script: getScriptContent(),
                 name: "Bazel build")
         return ProjectSpec.Target(
-            name: xcTargetName + "-Bazel",
+            name: xcTargetName + targetSuffix,
             type: PBXProductType(rawValue: productType.rawValue)!,
             platform: Platform(rawValue: platform)!,
             settings: makeXcodeGenSettings(from: settings),
@@ -1386,6 +1388,14 @@ private func makeScripts(for xcodeTarget: XcodeTarget, genOptions: XCHammerGener
     }
 
     return (basePreScripts, basePostScripts)
+}
+
+extension XcodeTarget {
+    static func bazelBuildableTargetSuffix(genOptions: XCHammerGenerateOptions) -> String {
+        let projectConfig = genOptions.projectConfig
+        let generateXcodeTargets = (projectConfig?.generateXcodeSchemes ?? true != false)
+        return  generateXcodeTargets ? "-Bazel" : ""
+    }
 }
 
 public func makeXcodeGenTarget(from xcodeTarget: XcodeTarget) -> ProjectSpec.Target? {

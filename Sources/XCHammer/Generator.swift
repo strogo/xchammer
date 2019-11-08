@@ -319,13 +319,14 @@ enum Generator {
             XcodeTargetMap, projectByXCTargetName: [String: String],
             genOptions: XCHammerGenerateOptions) ->
         [XcodeScheme] {
+        let targetSuffix = XcodeTarget.bazelBuildableTargetSuffix(genOptions: genOptions)
         func getSchemeDeps(xcodeTarget: XcodeTarget) -> [XcodeScheme.BuildTarget] {
             if xcodeTarget.isTopLevelTestTarget,
                 let testHostSetting = xcodeTarget.settings.testHost?.v {
                 let testHostName = testHostSetting.components(separatedBy: "/")[2]
-                return [XcodeScheme.BuildTarget(target: testHostName + "-Bazel",
-                            project: projectByXCTargetName[testHostName]!,
-                            productName: testHostName  + "-Bazel" + ".app")]
+                return [XcodeScheme.BuildTarget(target: testHostName + targetSuffix,
+                    project: projectByXCTargetName[testHostName]!,
+                    productName: testHostName  + targetSuffix + ".app")]
             }
             return []
         }
@@ -333,14 +334,14 @@ enum Generator {
 
         return targets.map {
             xcodeTarget in
-            let name = xcodeTarget.xcTargetName + "-Bazel"
+            let name = xcodeTarget.xcTargetName + targetSuffix
             let targetConfig = XcodeTarget.getTargetConfig(for:
                 xcodeTarget)
             let schemeConfig = targetConfig?.schemeConfig
             let buildTargets = getSchemeDeps(xcodeTarget: xcodeTarget) + [
                 XcodeScheme.BuildTarget(target: name,
                         project: genOptions.projectName, productName:
-                        xcodeTarget.extractBuiltProductName() + "-Bazel")
+                        xcodeTarget.extractBuiltProductName() + targetSuffix)
             ]
 
             let buildConfig = schemeConfig?[SchemeActionType.build.rawValue]

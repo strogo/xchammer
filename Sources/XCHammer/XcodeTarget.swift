@@ -339,7 +339,7 @@ public class XcodeTarget: Hashable, Equatable {
             path.hasSuffix(".def")
     }
 
-    lazy var xcSources: [ProjectSpec.TargetSource] = {
+    lazy var xcCompileableSources: [ProjectSpec.TargetSource] = {
         let sourceFiles = self.sourceFiles
             .filter { !$0.subPath.hasSuffix(".modulemap") && !$0.subPath.hasSuffix(".hmap") }
             .map { fileInfo -> ProjectSpec.TargetSource in
@@ -362,16 +362,19 @@ public class XcodeTarget: Hashable, Equatable {
                         TargetSource.HeaderVisibility.`project`)
             }
 
-        let resources = self.xcResources
-        let bundles = self.xcBundles
 
         let stubAsset = self.settings.swiftVersion == nil ?  XCHammerAsset.stubImp : XCHammerAsset.stubImpSwift
-        let all: [ProjectSpec.TargetSource] = resources + nonArcFiles + (sourceFiles.filter { !$0.path.hasSuffix("h") }.count > 0 ?
+        let all: [ProjectSpec.TargetSource] = nonArcFiles + (sourceFiles.filter { !$0.path.hasSuffix("h") }.count > 0 ?
             sourceFiles :
             [ProjectSpec.TargetSource(path: stubAsset.getPath(underProj:
                     self.genOptions.outputProjectPath), compilerFlags: ["-x objective-c", "-std=gnu99"])]
-        ) + bundles
+        )
         let s: Set<ProjectSpec.TargetSource> = Set(all)
+        return Array(s)
+    }()
+
+    lazy var xcSources: [ProjectSpec.TargetSource] = {
+        let s: Set<ProjectSpec.TargetSource> = Set(self.xcResources + self.xcBundles + self.xcCompileableSources)
         return Array(s)
     }()
 
@@ -1263,6 +1266,14 @@ public class XcodeTarget: Hashable, Equatable {
         let sources: [ProjectSpec.TargetSource]
         let xcodeBuildableTargetSettings: XCBuildSettings
         let deps: [ProjectSpec.Dependency]
+
+        let pathsPredicate = makePathFiltersPredicate(genOptions.pathsSet)
+        let linkedDeps = xcodeTarget.linkedTargetLabels
+            .compactMap { targetMap.xcodeTarget(buildLabel: $0, depender: xcodeTarget) }
+            .filter { includeTarget($0, pathPredicate: pathsPredicate) }
+            .map { ProjectSpec.Dependency(type: .target, reference: $0.xcTargetName + "-Bazel",
+                    embed: $0.isExtension) }
+
         if isTopLevelTestTarget {
             let flattened = Set(flattenedInner(targetMap: targetMap))
             // Determine deps to fuse into the rule.
@@ -1284,7 +1295,7 @@ public class XcodeTarget: Hashable, Equatable {
 
 
             // Use settings, sources, and deps from the fusable deps
-            sources = fusableDeps.flatMap { $0.xcSources }
+            sources = fusableDeps.flatMap { $0.xcCompileableSources }
 
             if shouldPropagateDeps(forTarget: xcodeTarget) {
                 deps = fusableDeps
@@ -1296,7 +1307,7 @@ public class XcodeTarget: Hashable, Equatable {
 
             // We need to stub out the CC
         } else {
-            sources = self.xcSources
+            sources = self.xcCompileableSources
             if shouldPropagateDeps(forTarget: xcodeTarget) {
                 deps = Array(xcodeTarget.transitiveDeps) +
                     xcodeTarget.xcExtensionDeps
@@ -1329,8 +1340,8 @@ public class XcodeTarget: Hashable, Equatable {
             settings: makeXcodeGenSettings(from: settings),
             configFiles: getXCConfigFiles(for: self),
             sources: sources,
-            dependencies: [],
-            preBuildScripts: [bazelScript]
+            dependencies: Array(Set(deps + linkedDeps)),
+            postBuildScripts: [bazelScript]
         )
     }
 }

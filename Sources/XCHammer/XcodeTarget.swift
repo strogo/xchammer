@@ -1258,8 +1258,11 @@ public class XcodeTarget: Hashable, Equatable {
         // Minimal settings for this build
         var settings = XCBuildSettings()
 
+        let xcodeTarget = self
         /// We need to include the sources into the target
         let sources: [ProjectSpec.TargetSource]
+        let xcodeBuildableTargetSettings: XCBuildSettings
+        let deps: [ProjectSpec.Dependency]
         if isTopLevelTestTarget {
             let flattened = Set(flattenedInner(targetMap: targetMap))
             // Determine deps to fuse into the rule.
@@ -1268,7 +1271,7 @@ public class XcodeTarget: Hashable, Equatable {
                 .filter { flattened.contains($0) && includeTarget($0, pathPredicate:
                         pathsPredicate) }
 
-            let xcodeBuildableTargetSettings = self.settings
+            xcodeBuildableTargetSettings = self.settings
                             <> fusableDeps.foldMap { $0.settings }
 
             if let xcBuildTestHost = xcodeBuildableTargetSettings.testHost?.v {
@@ -1279,19 +1282,35 @@ public class XcodeTarget: Hashable, Equatable {
                  settings.testHost = First(xcBuildTestHost.replacingOccurrences(of: ".app", with: "-Bazel.app") + "-Bazel")
             }
 
-            settings.headerSearchPaths = xcodeBuildableTargetSettings.headerSearchPaths
-            settings.copts = xcodeBuildableTargetSettings.copts
 
             // Use settings, sources, and deps from the fusable deps
             sources = fusableDeps.flatMap { $0.xcSources }
 
+            if shouldPropagateDeps(forTarget: xcodeTarget) {
+                deps = fusableDeps
+                    .flatMap { $0.transitiveDeps } + xcodeTarget.xcExtensionDeps
+            } else {
+                deps = []
+            }
+
+
             // We need to stub out the CC
-            settings.cc = First("$(PROJECT_FILE_PATH)/XCHammerAssets/xcode_clang_stub.sh")
         } else {
-            sources = []
-            let xcodeBuildableTargetSettings = self.settings
+            sources = self.xcSources
+            if shouldPropagateDeps(forTarget: xcodeTarget) {
+                deps = Array(xcodeTarget.transitiveDeps) +
+                    xcodeTarget.xcExtensionDeps
+            } else {
+                deps = []
+            }
+            xcodeBuildableTargetSettings = self.settings
             settings.infoPlistFile = xcodeBuildableTargetSettings.infoPlistFile
         }
+
+        settings.cc = First("$(PROJECT_FILE_PATH)/XCHammerAssets/xcode_clang_stub.sh")
+        settings.ld = First("$(PROJECT_FILE_PATH)/XCHammerAssets/xcode_ld_stub.sh")
+        settings.headerSearchPaths = xcodeBuildableTargetSettings.headerSearchPaths
+        settings.copts = xcodeBuildableTargetSettings.copts
 
         settings.onlyActiveArch = First("YES")
         settings.codeSigningRequired <>= First("NO")

@@ -9,16 +9,13 @@ do
     case $1 in
         -MF)
            shift
-           echo "mkdir -p "$(dirname $1)""
            mkdir -p "$(dirname $1)"
            touch "$1"
             ;;
         -o)
            shift
-           echo "mkdir -p "$(dirname $1)""
            mkdir -p "$(dirname $1)"
            # TODO: Determine object file architecture based on target arch
-           echo "ditto $SCRIPTPATH/x86_64_ObjectStub.o "$1""
            ditto $SCRIPTPATH/x86_64_ObjectStub.o "$1"
             ;;
         *)

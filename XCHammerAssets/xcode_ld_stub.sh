@@ -3,7 +3,6 @@ set -e
 SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
 pushd "$SCRIPTPATH/.." > /dev/null
 
-echo "$@"
 while [[ $# -gt 0 ]]
 do
     case $1 in

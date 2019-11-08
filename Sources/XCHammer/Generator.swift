@@ -66,7 +66,6 @@ enum Generator {
         defer {
             profiler.logEnd(true)
         }
-
         let entries: [XcodeGenTarget] = targetMap.includedProjectTargets.compactMap {
             xcodeTarget in
             guard let target = makeXcodeGenTarget(from: xcodeTarget) else {
@@ -595,10 +594,14 @@ enum Generator {
                 .map { $0.value.xcodeTarget }
         }
 
+
+        let projectConfig = genOptions.projectConfig
+        let generateXcodeTargets = (projectConfig?.generateXcodeSchemes ?? true != false)
+        let includedXcodeTargets = generateXcodeTargets ? allXCTargets.map { k, v in v.target } : []
         let bazelBuildableXcodeTargets = getBazelBuildableTargets()
         let bazelBuildableTargets = 
             bazelBuildableXcodeTargets.compactMap { $0.getBazelBuildableTarget() }
-        let allTargets = allXCTargets.map { k, v in v.target } + [
+        let allTargets = includedXcodeTargets + [
                 updateXcodeProjectTarget,
                 bazelPreBuildTarget,
                 clearSourceMapTarget
@@ -624,7 +627,6 @@ enum Generator {
             genOptions: genOptions,
             xcodeProjPath: tempProjectPath)
 
-        let projectConfig = genOptions.projectConfig
         let projectByXCTargetName = getProjectsByXCTargetName(genOptions:
             genOptions, targetMap: targetMap)
         let xcSchemes = (projectConfig?.generateXcodeSchemes ?? true) ?

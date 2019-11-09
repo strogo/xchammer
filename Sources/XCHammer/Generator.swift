@@ -529,8 +529,14 @@ enum Generator {
         let relativeProjDir = genOptions.outputProjectPath.string
                 .replacingOccurrences(of: genOptions.workspaceRootPath.string,
                                     with: "")
+        let targetsStr = genOptions.config.buildTargetLabels.map { "\"" + $0.value + "\"" }.joined(separator: ", ")
+
+        // FIXME: we need to make this load xchammer_resources
         let buildFileHdr = """
             load(\"/\(relativeProjDir)/XCHammerAssets:\(XCHammerAsset.bazelExtensions.rawValue)\", \"export_entitlements\")
+            load(\"@xchammer_resources//:xcodeproject.bzl\", \"xcode_project_deps\")
+
+            xcode_project_deps(name=\"deps\", targets=[ \(targetsStr) ],testonly=True)
 
             """
         let buildFile = buildFileHdr + entitlementRules
@@ -558,8 +564,9 @@ enum Generator {
              fatalError("Can't write genStatus")
         }
 
+        let genfilesRules = [BuildLabel("/" + relativeProjDir + "/XCHammerAssets:deps")]
         // Add the entitilement rules to the queried rules
-        let targetsToBuild = genfileLabels + entitlementRules
+        let targetsToBuild = genfilesRules + entitlementRules
                 .map { BuildLabel("/" + relativeProjDir + "/XCHammerAssets:" + $0.name) }
         let bazelPreBuildTarget = makeBazelPreBuildTarget(labels: targetsToBuild,
                 genOptions: genOptions)

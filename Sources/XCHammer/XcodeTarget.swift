@@ -438,6 +438,18 @@ public class XcodeTarget: Hashable, Equatable {
         }
     }()
 
+    lazy var xcAdHocFiles: [String] = {
+        let projectConfig = genOptions.config
+                .projects[genOptions.projectName]
+        // Include resources is ad-hoc files if they're not in a target
+        let generateXcodeTargets = (projectConfig?.generateXcodeSchemes ?? true != false)
+        let buildFile = [self.buildFilePath ?? ""]
+        guard generateXcodeTargets else {
+            return buildFile
+        }
+        return buildFile + self.xcBundles.map { $0.path } + self.xcResources.map { $0.path }
+    }()
+
     // TODO: consider refactoring this code to return `BazelFileInfo`s if possible
     func pathsForAttrs(attrs: Set<RuleEntry.Attribute>) -> [Path] {
         return attrs.flatMap { attr in

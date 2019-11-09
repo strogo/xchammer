@@ -596,6 +596,12 @@ enum Generator {
         }
 
 
+        let adHocFiles = Array(Set(allXCTargets.flatMap {
+            value -> [String] in
+            let (_, xcgTarget) = value
+            return xcgTarget.xcodeTarget.xcAdHocFiles
+        }))
+
         let projectConfig = genOptions.projectConfig
         let generateXcodeTargets = (projectConfig?.generateXcodeSchemes ?? true != false)
         let includedXcodeTargets = generateXcodeTargets ? allXCTargets.map { k, v in v.target } : []
@@ -619,7 +625,8 @@ enum Generator {
             targets: allTargets.sorted { $0.name < $1.name },
             settings: settings,
             settingGroups: [:],
-            options: options
+            options: options,
+            fileGroups: adHocFiles
         )
 
         XCHammerLogger.shared().logInfo("Writing project")

@@ -165,7 +165,7 @@ def _xcode_project_deps_impl(ctx):
                     inputs.append(info)
                     last = parts[len(parts) - 1]
                     cmd.append(
-                        "target_dir=$base_path/bazel-genfiles/$(dirname " + last + ")"
+                        "target_dir=$base_path/xchammer-includes/x/x/$(dirname " + last + ")"
                     )
                     cmd.append("mkdir -p $target_dir")
                     cmd.append("ditto " + info.path + " $target_dir")
@@ -204,6 +204,8 @@ def _install_xcode_project_impl(ctx):
         + output_proj
         + "/XCHammerAssets/bazel_build_settings.py",
         "ln -sf $PWD/external $(dirname $(readlink $PWD/WORKSPACE))/external",
+        "mkdir -p $(dirname $(readlink $PWD/WORKSPACE))/xchammer-includes/x/x/",
+        "ln -sf $PWD/external $(dirname $(readlink $PWD/WORKSPACE))/xchammer-includes/x/x/",
         'echo "' + output_proj + '" > ' + ctx.outputs.out.path,
     ]
     ctx.actions.run_shell(

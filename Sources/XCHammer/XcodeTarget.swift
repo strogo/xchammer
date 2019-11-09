@@ -107,8 +107,8 @@ func includeTarget(_ xcodeTarget: XcodeTarget, pathPredicate: (String) -> Bool) 
 private let stopAfterNeedsRecursive: TraversalTransitionPredicate<XcodeTarget> = TraversalTransitionPredicate { $0.needsRecursiveExtraction ? .justOnceMore : .keepGoing }
 private let stopAtBundles: TraversalTransitionPredicate<XcodeTarget> = TraversalTransitionPredicate { isBundleLibrary($0.type) ? .stop : .keepGoing }
 
-let GenDirSubSRCRoot = "$(SRCROOT)/bazel-genfiles"
-let GenDirSub = "bazel-genfiles"
+let GenDirSubSRCRoot = "$(SRCROOT)/xchammer-includes/x/x/"
+let GenDirSub = "xchammer-includes/x/x/"
 
 // __BAZEL_GEN_DIR__ is a custom toolchain make variable
 // resolve that to $(SRCROOT)/bazel-genfiles.
@@ -297,9 +297,10 @@ public class XcodeTarget: Hashable, Equatable {
             // Tulsi sticks some generated source file types in _tulsi-includes
             // and the aspect is aware of this.
             if useTulsiPath && fileInfo.fullPath.hasPrefix("bazel-tulsi-includes") {
-                return "tulsi-workspace/" + fileInfo.fullPath
+                return fileInfo.fullPath.replacingOccurrences(of: "bazel-tulsi-includes",
+                                                       with: "xchammer-includes")
             } else {
-                return "bazel-genfiles/" + resolveExternalPath(for: fileInfo.subPath)
+                return "xchammer-includes/x/x/" + resolveExternalPath(for: fileInfo.subPath)
             }
         }
     }
@@ -770,7 +771,7 @@ public class XcodeTarget: Hashable, Equatable {
                 .filter { !$0.0.contains("tulsi-includes") }
                 .foldMap { (path: String, isRecursive: Bool) in
                 if path.hasSuffix("module_map") {
-                    return ["$(SRCROOT)/bazel-genfiles/\(path)"]
+                    return ["$(SRCROOT)/xchammer-includes/x/x/\(path)"]
                 } else if isRecursive {
                     return ["$(SRCROOT)/\(path)/**"]
                 } else {
@@ -1082,7 +1083,7 @@ public class XcodeTarget: Hashable, Equatable {
                 .replacingOccurrences(of: genOptions.workspaceRootPath.string,
                                     with: "")
         let targetName = label.asFullPBXTargetName!
-        return "$(SRCROOT)/bazel-genfiles" + relativeProjDir + "/XCHammerAssets/" + targetName + ".entitlements"
+        return "$(SRCROOT)/xchammer-includes/x/x/" + relativeProjDir + "/XCHammerAssets/" + targetName + ".entitlements"
     }
 
     var mobileProvisionProfileFile: String? {

@@ -323,8 +323,6 @@ enum Generator {
             return []
         }
 
-        let projectConfig = genOptions.projectConfig
-        let generateXcodeSchemes = (projectConfig?.generateXcodeSchemes ?? true != false)
         let specifiedLabels = Set(genOptions.config.buildTargetLabels)
         return targets.compactMap { xcodeTarget in
             let type = xcodeTarget.xcType!
@@ -594,16 +592,6 @@ enum Generator {
         let settings = Settings(configSettings: ["DEBUG": Settings(dictionary:
                     debugSettingsDict)])
 
-        // Get Bazel targets for the specified labels
-        let getBazelBuildableTargets: (() -> [XcodeTarget]) = {
-            () -> [XcodeTarget] in
-            let specifiedLabels = Set(genOptions.config.buildTargetLabels)
-            return targetsByName
-                .filter { specifiedLabels.contains($0.value.label) }
-                .map { $0.value }
-        }
-
-
         let adHocFiles = Array(Set(targetsByName.flatMap {
             value -> [String] in
             let (_, xcodeTarget) = value
@@ -613,8 +601,6 @@ enum Generator {
         let projectConfig = genOptions.projectConfig
         let generateTransitiveXcodeTargets = (projectConfig?.generateTransitiveXcodeTargets ?? true != false)
         // TODO: consider renaming generateXcodeSchemes to buildWithBazel
-        let includedXcodeTargets: [XcodeTarget] = generateTransitiveXcodeTargets ?
-            Array(targetsByName.values) : []
         let buildWithXcode = (projectConfig?.generateXcodeSchemes ?? true != false)
         if generateTransitiveXcodeTargets == false && buildWithXcode {
             fatalError("Xcode requires generateTransitiveXcodeTargets and generateXcodeSchemes")
@@ -623,7 +609,7 @@ enum Generator {
         let convertTargetsProfiler = XCHammerProfiler("convert_targets")
         let includedXcodeGenTargets: [ProjectSpec.Target]
 
-        includedXcodeGenTargets = includedXcodeTargets.compactMap {
+        includedXcodeGenTargets = targetsByName.values.compactMap {
             buildWithXcode ? $0.getXcodeBuildableTarget() : $0.getBazelBuildableTarget()
         }
         convertTargetsProfiler.logEnd(true)

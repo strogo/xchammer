@@ -37,7 +37,9 @@ function test_build() {
 
 function test_bazel_build() {
     # This tests a Bazel project generation and then Bazel builds the targets
-    $BAZEL build -s :FocusXcode --spawn_strategy=standalone
+    $BAZEL clean
+    $BAZEL build -s :XcodeBazel --spawn_strategy=standalone
+
     xcodebuild -scheme ios-app -project XcodeBazel.xcodeproj -sdk iphonesimulator
     assertExitCode "Xcode built bazel targets successfully"
 }
@@ -84,7 +86,11 @@ function preflightEnv() {
     # program to prevent polluting the sample
     mkdir -p $SANDBOX
     ditto $ROOT_DIR/sample/$SAMPLE $SANDBOX/$SAMPLE
-    rm -rf $SANDBOX/$SAMPLE/$SAMPLE.xcodeproj
+
+    mkdir -p $SANDBOX/$SAMPLE/tools
+    ln -sf $ROOT_DIR/xchammer.app $SANDBOX/$SAMPLE/tools/xchammer.app
+
+    rm -rf $SANDBOX/$SAMPLE/*.xcodeproj
 
     cd $SANDBOX/$SAMPLE;
 

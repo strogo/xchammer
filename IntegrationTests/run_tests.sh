@@ -36,8 +36,9 @@ function test_build() {
 }
 
 function test_bazel_build() {
-    $XCHAMMER_BIN generate $SANDBOX/$SAMPLE/XCHammer.yaml --bazel $BAZEL --force
-    xcodebuild -scheme ios-app-Bazel -project $TEST_PROJ -sdk iphonesimulator
+    # This tests a Bazel project generation and then Bazel builds the targets
+    $BAZEL build -s :FocusXcode --spawn_strategy=standalone
+    xcodebuild -scheme ios-app -project XcodeBazel.xcodeproj -sdk iphonesimulator
     assertExitCode "Xcode built bazel targets successfully"
 }
 

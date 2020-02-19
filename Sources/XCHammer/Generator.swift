@@ -616,7 +616,7 @@ enum Generator {
         let includedXcodeTargets: [XcodeTarget] = generateTransitiveXcodeTargets ?
             Array(targetsByName.values) : []
         let buildWithXcode = (projectConfig?.generateXcodeSchemes ?? true != false)
-        if generateTransitiveXcodeTargets && buildWithXcode {
+        if generateTransitiveXcodeTargets == false && buildWithXcode {
             fatalError("Xcode requires generateTransitiveXcodeTargets and generateXcodeSchemes")
         }
 

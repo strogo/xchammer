@@ -1315,12 +1315,18 @@ public class XcodeTarget: Hashable, Equatable {
                             <> fusableDeps.foldMap { $0.settings }
             // Use settings, sources, and deps from the fusable deps
             sources = fusableDeps.flatMap { $0.xcCompileableSources }
-            if let xcBuildTestHost = xcodeBuildableTargetSettings.testHost?.v {
-                 // Notes on test host build configuration:
-                 // - Xcode bazel-builds the app as a scheme dep
-                 // - Xcode bazel-builds the test which install the test bundle into the
-                 //   app
-                 settings.testHost = First(xcBuildTestHost)
+            // Notes on test host build configuration:
+            // - Xcode bazel-builds the app as a scheme dep
+            // - Xcode bazel-builds the test which install the test bundle into the
+            //   app
+            settings.testHost = xcodeBuildableTargetSettings.testHost
+            settings.testTargetName = xcodeBuildableTargetSettings.testTargetName
+
+            // This is required to codesign the Runner.app with the right
+            // entitlement.
+            // TODO: support custom entitlements for on device.
+            if settings.testTargetName != nil {
+                settings.codeSigningAllowed = First("YES")
             }
         } else {
             sources = self.xcCompileableSources

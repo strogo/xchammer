@@ -445,7 +445,7 @@ public class XcodeTarget: Hashable, Equatable {
         // Include resources is ad-hoc files if they're not in a target
         let generateXcodeTargets = (projectConfig?.generateXcodeSchemes ?? true != false)
         let buildFile = [self.buildFilePath ?? ""]
-        guard generateXcodeTargets else {
+        guard generateXcodeTargets == false else {
             return buildFile
         }
         return buildFile + self.xcBundles.map { $0.path } + self.xcResources.map { $0.path }

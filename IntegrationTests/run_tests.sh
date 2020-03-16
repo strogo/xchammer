@@ -117,7 +117,6 @@ function runTests() {
 }
 
 ## Execution
-set -x
 echo "Running tests"
 # Do a debug build
 trap testsDidFinish EXIT

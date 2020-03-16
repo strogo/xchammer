@@ -40,6 +40,7 @@ function test_bazel_build() {
     $BAZEL clean
     $BAZEL build -s :XcodeBazel --spawn_strategy=standalone
 
+    mkdir -p XcodeBazel.xcodeproj/.tulsi
     xcodebuild -scheme ios-app -project XcodeBazel.xcodeproj -sdk iphonesimulator
     assertExitCode "Xcode built bazel targets successfully"
 }
@@ -116,7 +117,7 @@ function runTests() {
 }
 
 ## Execution
-
+set -x
 echo "Running tests"
 # Do a debug build
 trap testsDidFinish EXIT
